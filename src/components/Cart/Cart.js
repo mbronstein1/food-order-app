@@ -7,6 +7,8 @@ import Checkout from './Checkout';
 
 const Cart = ({ hideCartHandler }) => {
   const [isCheckout, setIsCheckout] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [didSubmit, setDidSubmit] = useState(false);
 
   const cartCtx = useContext(CartContext);
 
@@ -25,14 +27,21 @@ const Cart = ({ hideCartHandler }) => {
     setIsCheckout(true);
   };
 
-  const submitOrderHandler = userData => {
-    fetch('https://react-http-practice-54ed4-default-rtdb.firebaseio.com/orders.json', {
-      method: 'POST',
-      header: 'Content-Type: application/json',
-      body: JSON.stringify({ user: userData, orderedItems: cartCtx.items }),
-    })
-      .then(response => console.log(response))
-      .catch(err => console.error(err));
+  const submitOrderHandler = async userData => {
+    setIsSubmitting(true);
+    try {
+      await fetch('https://react-http-practice-54ed4-default-rtdb.firebaseio.com/orders.json', {
+        method: 'POST',
+        header: 'Content-Type: application/json',
+        body: JSON.stringify({ user: userData, orderedItems: cartCtx.items }),
+      });
+      setIsSubmitting(false);
+      setDidSubmit(true);
+      cartCtx.clearCart();
+    } catch (err) {
+      setIsSubmitting(false);
+      console.log(err);
+    }
   };
 
   const cartItems = (
@@ -65,8 +74,8 @@ const Cart = ({ hideCartHandler }) => {
     </div>
   );
 
-  return (
-    <Modal hideCartHandler={hideCartHandler}>
+  const cartModalContent = (
+    <>
       {cartItems}
       <div className={classes.total}>
         <span>Total Amount</span>
@@ -79,6 +88,28 @@ const Cart = ({ hideCartHandler }) => {
         />
       )}
       {!isCheckout && modalActions}
+    </>
+  );
+
+  const isSubmittingModalContent = <p>Sending order data...</p>;
+  const didSubmitModalContent = (
+    <>
+      <p>Successfully sent the order!</p>
+      <div className={classes.actions}>
+        <button
+          onClick={hideCartHandler}
+          className={classes.button}>
+          Close
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <Modal hideCartHandler={hideCartHandler}>
+      {!isSubmitting && !didSubmit && cartModalContent}
+      {isSubmitting && isSubmittingModalContent}
+      {!isSubmitting && didSubmit && didSubmitModalContent}
     </Modal>
   );
 };
